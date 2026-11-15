@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chess Trainer</title>
+<link rel="icon" type="image/png" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,700;1,600&family=EB+Garamond:wght@400;500;600&family=Abril+Fatface&family=Bungee&family=Cinzel:wght@700&family=Monoton&family=Pacifico&family=Permanent+Marker&family=Press+Start+2P&family=Rubik+Glitch&family=Space+Mono:wght@700&family=UnifrakturMaguntia&family=Bebas+Neue&family=Caveat:wght@700&display=swap" rel="stylesheet">
+<style>
+/* Layout: full-screen hero over a live replay board, then one walnut column with download + guide. */
+:root {
+  --wood: #2a1c10;
+  --wood-2: #3a2817;
+  --wood-3: #1b120a;
+  --gold: #c9a45c;
+  --gold-hi: #e8c977;
+  --parch: #f3e6c8;
+  --muted: #cdb98f;
+  --sq-light: #eeeed2;
+  --sq-dark: #769656;
+  --green: #2e7d4f;
+  --display: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+  --body: "EB Garamond", Georgia, "Times New Roman", serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--wood); color: var(--parch); font: 400 19px/1.6 var(--body); }
+a { color: var(--gold-hi); }
+:focus-visible { outline: 3px solid var(--gold-hi); outline-offset: 3px; border-radius: 4px; }
+code { font-family: ui-monospace, Consolas, monospace; font-size: .82em; background: rgba(0,0,0,.35); border: 1px solid rgba(201,164,92,.3); padding: 1px 6px; border-radius: 4px; word-break: break-word; }
+kbd { font-family: ui-monospace, Consolas, monospace; font-size: .8em; background: var(--wood-2); border: 1px solid var(--gold); border-bottom-width: 2px; padding: 0 6px; border-radius: 4px; }
+
+/* ---------- Hero ---------- */
+.hero { position: relative; min-height: 100vh; min-height: 100svh; overflow: hidden; display: grid; place-items: center; isolation: isolate; }
+.stage { position: absolute; inset: 0; z-index: -2; display: grid; place-items: center; }
+.board-wrap { position: relative; width: min(92vmin, 860px); aspect-ratio: 1; transform: perspective(1400px) rotateX(18deg) rotateZ(-8deg) scale(1.08); filter: saturate(.95); }
+.board { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(8, 1fr); border: 10px solid #4a321c; border-radius: 6px; box-shadow: 0 40px 80px rgba(0,0,0,.6); }
+.sq { position: relative; }
+.sq.l { background: var(--sq-light); } .sq.d { background: var(--sq-dark); }
+.sq.hl::after { content: ""; position: absolute; inset: 0; background: rgba(255,255,51,.42); }
+.sq.mate::after { content: ""; position: absolute; inset: 0; background: radial-gradient(circle, rgba(235,60,40,.95) 0 38%, rgba(235,60,40,.5) 62%, transparent 72%); }
+.pieces { position: absolute; inset: 10px; pointer-events: none; }
+.pc { position: absolute; width: 12.5%; height: 12.5%; display: grid; place-items: center; font-size: min(9vmin, 86px); line-height: 1;
+  font-family: "Segoe UI Symbol", "Noto Sans Symbols 2", "Apple Symbols", serif; transition: transform .45s cubic-bezier(.3,.7,.3,1), opacity .3s; }
+.pc.w { color: #fbf8ee; -webkit-text-stroke: 1.5px #1c1c1c; text-shadow: 0 3px 4px rgba(0,0,0,.35); }
+.pc.b { color: #1d1d1d; text-shadow: 0 3px 4px rgba(0,0,0,.35); }
+.pc.gone { opacity: 0; }
+.mate-badge { position: absolute; z-index: 3; left: 50%; top: 86%; transform: translate(-50%,-50%) scale(.6); opacity: 0;
+  background: #fff; color: #312e2b; border-radius: 10px; padding: .45em 1.1em; font: 700 min(5vmin, 40px) "EB Garamond", Georgia, serif;
+  box-shadow: 0 12px 30px rgba(0,0,0,.45); transition: opacity .35s, transform .35s cubic-bezier(.3,1.6,.5,1); white-space: nowrap; }
+.mate-badge.on { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+.mate-badge small { display: block; font-size: .45em; font-weight: 500; color: #777; text-align: center; }
+.veil { position: absolute; inset: 0; z-index: -1;
+  background: radial-gradient(ellipse at center, rgba(27,18,10,.62) 0%, rgba(27,18,10,.84) 55%, rgba(27,18,10,.97) 100%); }
+
+.hero-inner { text-align: center; padding: 40px 20px; max-width: 1100px; }
+.mark { width: 72px; height: 72px; margin: 0 auto 14px; display: block; filter: drop-shadow(0 6px 10px rgba(0,0,0,.5)); }
+h1.claim { margin: 0; font-family: var(--display); font-weight: 700; line-height: .92; letter-spacing: -.01em; color: var(--parch);
+  font-size: clamp(2.9rem, 10vw, 7.2rem); text-shadow: 0 4px 30px rgba(0,0,0,.6); }
+h1.claim > span { display: block; }
+h1.claim .row2 { white-space: nowrap; }
+.larp { display: inline-block; color: var(--gold-hi); min-width: 2.4em; padding: 0 .06em; text-align: center; }
+.tag { margin: 22px auto 28px; max-width: 34em; color: var(--muted); font-size: clamp(1.05rem, 2.2vw, 1.3rem); }
+.cta { display: inline-flex; align-items: center; gap: 12px; text-decoration: none; padding: 15px 30px; border-radius: 10px;
+  background: var(--gold-hi); color: var(--wood); font: 700 1.15rem var(--body); border: 2px solid var(--gold-hi); }
+.cta:hover { background: #f2d68c; }
+.cta.ghost { background: transparent; color: var(--gold-hi); }
+.cta-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.scroll-hint { position: absolute; bottom: 22px; left: 50%; transform: translateX(-50%); color: var(--gold); font-size: .85rem; letter-spacing: .2em; text-transform: uppercase; text-decoration: none; }
+.scroll-hint::after { content: ""; display: block; width: 1px; height: 34px; margin: 8px auto 0; background: var(--gold); animation: drip 1.8s ease-in-out infinite; transform-origin: top; }
+@keyframes drip { 0%{transform:scaleY(0)} 50%{transform:scaleY(1)} 100%{transform:scaleY(0);transform-origin:bottom} }
+
+/* ---------- Content ---------- */
+main { background: linear-gradient(180deg, var(--wood-3) 0%, var(--wood) 30%); }
+.wrap { max-width: 980px; margin: 0 auto; padding: 0 20px; }
+section { padding: 80px 0; border-top: 1px solid rgba(201,164,92,.25); }
+.eyebrow { font-variant: small-caps; letter-spacing: .14em; color: var(--gold); font-size: 1rem; margin: 0 0 6px; }
+h2 { font-family: var(--display); font-weight: 700; font-size: clamp(2.1rem, 5vw, 3.2rem); line-height: 1.05; margin: 0 0 14px; color: var(--parch); text-wrap: balance; }
+h3 { font-family: var(--display); font-weight: 700; font-size: 1.45rem; margin: 0 0 4px; color: var(--gold-hi); }
+.lead { color: var(--muted); max-width: 38em; margin: 0; }
+
+.dl-card { margin-top: 30px; display: grid; grid-template-columns: auto 1fr auto; gap: 26px; align-items: center;
+  background: linear-gradient(180deg, var(--wood-2), var(--wood)); border: 2px solid var(--gold); border-radius: 14px; padding: 26px 28px;
+  box-shadow: 0 18px 40px rgba(0,0,0,.4), inset 0 0 0 1px rgba(255,230,170,.08); }
+.dl-card img { width: 86px; height: 86px; }
+.dl-card .meta { color: var(--muted); font-size: 1rem; }
+.dl-card .meta b { color: var(--parch); font-family: var(--display); font-size: 1.6rem; display: block; line-height: 1.1; }
+.dl-note { margin-top: 12px; color: var(--muted); font-size: .95rem; min-height: 1.5em; }
+
+.steps { list-style: none; margin: 34px 0 0; padding: 0; display: grid; gap: 14px; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 64px 1fr; gap: 18px; align-items: start;
+  background: rgba(0,0,0,.22); border: 1px solid rgba(201,164,92,.35); border-radius: 12px; padding: 18px 20px; }
+.steps li::before { content: counter(s); width: 52px; height: 52px; display: grid; place-items: center; border-radius: 50%;
+  border: 2px solid var(--gold); color: var(--gold-hi); font: 700 1.6rem var(--display);
+  background: repeating-conic-gradient(rgba(201,164,92,.16) 0 25%, transparent 0 50%) 0 0 / 26px 26px; }
+.steps p { margin: 0; color: var(--muted); }
+.callout { margin-top: 18px; padding: 14px 18px; border-left: 4px solid var(--gold); background: rgba(201,164,92,.1); border-radius: 0; color: var(--parch); font-size: 1rem; }
+
+.feat { margin-top: 30px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.feat div { background: rgba(0,0,0,.22); border: 1px solid rgba(201,164,92,.35); border-radius: 12px; padding: 18px 20px; }
+.feat .glyph { font-size: 2rem; color: var(--gold-hi); line-height: 1; display: block; margin-bottom: 8px; }
+.feat p { margin: 0; color: var(--muted); font-size: 1rem; }
+.scale { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.scale span { font: 600 .85rem var(--body); padding: 2px 9px; border-radius: 999px; background: rgba(0,0,0,.35); border: 1px solid rgba(201,164,92,.25); }
+
+footer { padding: 40px 0 60px; color: var(--muted); font-size: .95rem; border-top: 1px solid rgba(201,164,92,.25); }
+footer .wrap { display: grid; gap: 6px; }
+
+@media (max-width: 760px) {
+  .dl-card { grid-template-columns: 1fr; text-align: center; justify-items: center; }
+  .feat { grid-template-columns: 1fr; }
+  .steps li { grid-template-columns: 48px 1fr; gap: 12px; padding: 14px; }
+  .steps li::before { width: 42px; height: 42px; font-size: 1.3rem; }
+  .board-wrap { width: 120vmin; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .pc { transition: none; }
+  .scroll-hint::after { animation: none; }
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="stage" aria-hidden="true">
+    <div class="board-wrap">
+      <div class="board" id="board"></div>
+      <div class="pieces" id="pieces"></div>
+      <div class="mate-badge" id="badge">Checkmate<small id="badge-sub"></small></div>
+    </div>
+  </div>
+  <div class="veil"></div>
+  <div class="hero-inner">
+    <img class="mark" src="logo.png" alt="Chess Trainer logo">
+    <h1 class="claim" aria-label="No need to larp chess anymore">
+      <span aria-hidden="true">No need</span>
+      <span class="row2" aria-hidden="true">to <span class="larp" id="larp">larp</span> chess</span>
+      <span aria-hidden="true">anymore</span>
+    </h1>
+    <p class="tag">Chess Trainer draws the best move right onto the board in your Chess.com bot games. Stockfish 19, running locally in Chrome.</p>
+    <div class="cta-row">
+      <a class="cta" href="#download">Download for Chrome</a>
+      <a class="cta ghost" href="#setup">Setup guide</a>
+    </div>
+  </div>
+  <a class="scroll-hint" href="#download">Scroll</a>
+</header>
+
+<main>
+  <section id="download">
+    <div class="wrap">
+      <p class="eyebrow">Download</p>
+      <h2>Get Chess Trainer for Chrome</h2>
+      <p class="lead">One ZIP, no account, no server. Works in Chrome and in every browser built on it: Edge, Brave and Opera.</p>
+      <div class="dl-card">
+        <img src="logo.png" alt="">
+        <div class="meta"><b>Chess Trainer 1.4.0</b>Chrome extension · ZIP · 1.3 MB · Stockfish 19 included</div>
+        <a class="cta" id="dl" href="chess-trainer-chrome.zip" download="chess-trainer-chrome.zip">Download ZIP</a>
+      </div>
+      <p class="dl-note" id="dl-note" role="status"></p>
+    </div>
+  </section>
+
+  <section id="setup">
+    <div class="wrap">
+      <p class="eyebrow">Setup guide</p>
+      <h2>Installed in about a minute</h2>
+      <p class="lead">The extension isn't in the Chrome Web Store, so you load it by hand once.</p>
+      <ol class="steps">
+        <li><div><h3>Download the ZIP</h3><p>Click "Download ZIP" above.</p></div></li>
+        <li><div><h3>Unzip it to a folder that stays</h3><p>Right-click the ZIP and choose "Extract all". Pick a permanent place such as <code>Documents\chess-trainer</code>. If you delete the folder later, the extension stops working.</p></div></li>
+        <li><div><h3>Open the extensions page</h3><p>Type <code>chrome://extensions</code> into the address bar. In Edge it's <code>edge://extensions</code>, in Brave <code>brave://extensions</code>.</p></div></li>
+        <li><div><h3>Turn on Developer mode</h3><p>Flip the "Developer mode" switch in the top-right corner (Edge: bottom-left).</p></div></li>
+        <li><div><h3>Load the folder</h3><p>Click "Load unpacked" and select the folder that directly contains <code>manifest.json</code>. The green pawn appears in your toolbar.</p></div></li>
+        <li><div><h3>Play a bot</h3><p>Open <code>chess.com/play/computer</code> and start a game. If the page was already open, reload it once with <kbd>F5</kbd>. The panel appears above the board.</p></div></li>
+      </ol>
+      <p class="callout">Chrome may show a "Disable developer mode extensions" notice on startup. That's normal for extensions from outside the store. Just close it.</p>
+    </div>
+  </section>
+
+  <section id="panel">
+    <div class="wrap">
+      <p class="eyebrow">In the game</p>
+      <h2>What the panel shows you</h2>
+      <div class="feat">
+        <div><span class="glyph">♘</span><h3>Best move</h3><p>A green arrow on the board and the move in notation, every time it's your turn.</p></div>
+        <div><span class="glyph">♚</span><h3>Moves to mate</h3><p>When there's a forced checkmate, the panel says in how many moves. For you, or for the bot.</p></div>
+        <div><span class="glyph">⚙</span><h3>Play style</h3><p>Solid, Balanced, Aggressive or All-in, plus think time from 0.3 to 3 seconds.</p></div>
+      </div>
+      <div class="feat" style="grid-template-columns:1fr">
+        <div><h3>Evaluation in words</h3><p>No numbers, just how you stand:</p>
+          <div class="scale">
+            <span style="color:#d14a3a">Lost</span><span style="color:#d1452b">Terrible</span><span style="color:#e06a3a">Bad</span><span style="color:#e58a2e">Dubious</span><span style="color:#dcc54d">Equal</span><span style="color:#a8d24b">Good</span><span style="color:#86dc55">Great</span><span style="color:#9cf06e">Excellent</span><span style="color:#c4ff9a">Super</span>
+          </div>
+        </div>
+      </div>
+      <p class="callout">Chess Trainer only runs on <code>chess.com/play/computer</code>, against bots. Using an engine against real people is cheating and gets your account banned. Toggle it any time with <kbd>Alt</kbd> + <kbd>X</kbd>.</p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div>Chess Trainer 1.4.0 · for bot games only · not affiliated with Chess.com.</div>
+    <div>Includes <a href="https://github.com/nmrugg/stockfish.js">Stockfish.js</a> (GPL-3.0), based on <a href="https://stockfishchess.org">Stockfish</a>.</div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // ---------- "larp" font roulette ----------
+  var FONTS = ["Bungee", "UnifrakturMaguntia", "Pacifico", "Press Start 2P", "Monoton", "Rubik Glitch", "Cinzel",
+    "Abril Fatface", "Space Mono", "Permanent Marker", "Bebas Neue", "Caveat", "Cormorant Garamond"];
+  var SIZE = { "Press Start 2P": .62, "Monoton": .82, "Space Mono": .85, "Bungee": .86, "Pacifico": .9, "Caveat": 1.12, "Bebas Neue": 1.08 };
+  var larp = document.getElementById("larp"), fi = 0;
+  setInterval(function () {
+    fi = (fi + 1) % FONTS.length;
+    var f = FONTS[fi];
+    larp.style.fontFamily = '"' + f + '", Georgia, serif';
+    larp.style.fontSize = (SIZE[f] || 1) + "em";
+  }, reduce ? 1600 : 380);
+
+  // ---------- Background: checkmate replays ----------
+  var GAMES = [
+    { name: "Scholar's Mate", win: "White", moves: "e2e4 e7e5 f1c4 b8c6 d1h5 g8f6 h5f7" },
+    { name: "Légal's Mate", win: "White", moves: "e2e4 e7e5 g1f3 d7d6 f1c4 c8g4 b1c3 g7g6 f3e5 g4d1 c4f7 e8e7 c3d5" },
+    { name: "Fool's Mate", win: "Black", moves: "f2f3 e7e5 g2g4 d8h4" },
+    { name: "Blackburne Shilling Trap", win: "Black", moves: "e2e4 e7e5 g1f3 b8c6 f1c4 c6d4 f3e5 d8g5 e5f7 g5g2 h1f1 g2e4 c4e2 d4f3" },
+    { name: "Smothered Mate", win: "White", moves: "e2e4 c7c6 d2d4 d7d5 b1c3 d5e4 c3e4 b8d7 d1e2 g8f6 e4d6" }
+  ];
+  var GLYPH = { K: "♔", Q: "♕", R: "♖", B: "♗", N: "♘", P: "♙", k: "♚", q: "♛", r: "♜", b: "♝", n: "♞", p: "♟" };
+  var START = ["RNBQKBNR", "PPPPPPPP", "........", "........", "........", "........", "pppppppp", "rnbqkbnr"];
+  var boardEl = document.getElementById("board"), piecesEl = document.getElementById("pieces");
+  var badge = document.getElementById("badge"), badgeSub = document.getElementById("badge-sub");
+  var squares = {};
+  for (var r = 7; r >= 0; r--) for (var f = 0; f < 8; f++) {
+    var d = document.createElement("div");
+    d.className = "sq " + ((r + f) % 2 ? "l" : "d");
+    boardEl.appendChild(d);
+    squares[f + "" + r] = d;
+  }
+  var pieces = {}; // "fr" -> element
+
+  function place(el, f, r) { el.style.transform = "translate(" + f * 100 + "%," + (7 - r) * 100 + "%)"; }
+  function clearMarks() { for (var k in squares) squares[k].classList.remove("hl", "mate"); }
+  function setup() {
+    piecesEl.innerHTML = ""; pieces = {}; clearMarks();
+    for (var r = 0; r < 8; r++) for (var f = 0; f < 8; f++) {
+      var c = START[r][f];
+      if (c === ".") continue;
+      var el = document.createElement("div");
+      el.className = "pc " + (c === c.toUpperCase() ? "w" : "b");
+      el.textContent = GLYPH[c]; el.dataset.p = c;
+      place(el, f, r); piecesEl.appendChild(el); pieces[f + "" + r] = el;
+    }
+  }
+  function sq(s) { return { f: s.charCodeAt(0) - 97, r: +s[1] - 1 }; }
+  function play(uci) {
+    var a = sq(uci.slice(0, 2)), b = sq(uci.slice(2, 4)), ka = a.f + "" + a.r, kb = b.f + "" + b.r;
+    var el = pieces[ka]; if (!el) return;
+    var victim = pieces[kb];
+    if (victim) { victim.classList.add("gone"); setTimeout(function () { victim.remove(); }, 320); }
+    delete pieces[ka]; pieces[kb] = el; place(el, b.f, b.r);
+    clearMarks(); squares[ka].classList.add("hl"); squares[kb].classList.add("hl");
+  }
+  function kingOf(color) {
+    var k = color === "White" ? "♚" : "♔"; // the mated king belongs to the loser
+    for (var key in pieces) if (pieces[key].textContent === k) return key;
+  }
+
+  var gi = 0;
+  function runGame() {
+    var g = GAMES[gi % GAMES.length]; gi++;
+    var moves = g.moves.split(" "), i = 0;
+    badge.classList.remove("on"); setup();
+    var step = reduce ? 1400 : 850;
+    var t = setInterval(function () {
+      if (i < moves.length) { play(moves[i++]); return; }
+      clearInterval(t);
+      var k = kingOf(g.win); if (k) squares[k].classList.add("mate");
+      badgeSub.textContent = g.name + " · " + g.win + " wins";
+      badge.classList.add("on");
+      setTimeout(runGame, 3200);
+    }, step);
+  }
+  setTimeout(runGame, 400);
+
+  // ---------- Download ----------
+  var a = document.getElementById("dl"), note = document.getElementById("dl-note");
+  a.addEventListener("click", function () { note.textContent = "Download started. Follow the setup guide below."; });
+})();
+</script>
+</body>
+</html>
