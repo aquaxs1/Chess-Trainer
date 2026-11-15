@@ -4,7 +4,7 @@ A Chrome extension that paints the best move on any chess.com board — bots, hu
 
 **[⬇ Download the latest release](https://github.com/aquaxs1/Chess-trainer/releases/latest/download/chess-trainer.zip)** — this link always resolves to the newest build.
 
-Landing page: https://aquaxs1.github.io/Chess-trainer/
+Landing page: https://chesstrainer.cc.cd
 
 ## Install
 
