@@ -2,9 +2,13 @@
 
 A Chrome extension that paints the best move on any chess.com board — bots, humans, live, analysis — as a glowing arrow, with a side panel showing evaluation, material, suggested move and a mate counter. Local Stockfish 19 (WASM) runs the engine.
 
+**[⬇ Download the latest release](https://github.com/aquaxs1/Chess-trainer/releases/latest/download/chess-trainer.zip)** — this link always resolves to the newest build.
+
+Landing page: https://aquaxs1.github.io/Chess-trainer/
+
 ## Install
 
-1. Clone or download this repo.
+1. Download the zip from the link above and extract it to a folder you will keep.
 2. Open `chrome://extensions`.
 3. Toggle **Developer mode** on (top right).
 4. Click **Load unpacked** and select this folder.
